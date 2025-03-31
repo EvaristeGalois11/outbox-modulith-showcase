@@ -1,4 +1,6 @@
 package org.example.showcase.event;
 
-public record FooEvent(long id, String name) {
+import java.util.UUID;
+
+public record FooEvent(UUID id, String name) {
 }

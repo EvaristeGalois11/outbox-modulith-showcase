@@ -7,8 +7,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class DummyService {
     private final DummyRepository dummyRepository;
@@ -20,16 +18,8 @@ public class DummyService {
     }
 
     @Transactional
-    public long createDummy() {
-        var dummy = randomDummy();
+    public void saveDummy(Dummy dummy) {
         dummy = dummyRepository.save(dummy);
         eventPublisher.publishEvent(new FooEvent(dummy.getId(), dummy.getName()));
-        return dummy.getId();
-    }
-
-    private Dummy randomDummy() {
-        var dummy = new Dummy();
-        dummy.setName(UUID.randomUUID().toString());
-        return dummy;
     }
 }
