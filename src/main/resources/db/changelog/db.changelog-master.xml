@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+    <changeSet id="1743452031382-1" author="claudio">
+        <createTable tableName="dummy">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="name" type="text"/>
+            <column name="timestamp" type="timestamp"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1743452031382-2" author="claudio">
+        <createTable tableName="event_publication">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="completion_date" type="timestamp"/>
+            <column name="publication_date" type="timestamp"/>
+            <column name="event_type" type="text"/>
+            <column name="listener_id" type="text"/>
+            <column name="serialized_event" type="text"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
