@@ -12,6 +12,7 @@ public class FooListener {
     private static final Logger log = LoggerFactory.getLogger(FooListener.class);
 
     private final RestClient restClient;
+    private int disruptionCount = 0;
 
     public FooListener(RestClient restClient) {
         this.restClient = restClient;
@@ -20,6 +21,7 @@ public class FooListener {
     @ApplicationModuleListener
     public void onFooEvent(FooEvent event) {
         log.info("Sending Foo event: {}", event);
+        disrupt();
         var response = restClient
                 .post()
                 .uri("/foo")
@@ -27,5 +29,11 @@ public class FooListener {
                 .retrieve()
                 .toBodilessEntity();
         log.info("Foo response status: {}", response.getStatusCode().value());
+    }
+
+    private void disrupt() {
+        if (++disruptionCount <= 10) {
+            throw new RuntimeException("Disruption count is " + disruptionCount);
+        }
     }
 }
