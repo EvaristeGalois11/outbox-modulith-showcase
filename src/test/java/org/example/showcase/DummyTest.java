@@ -2,12 +2,15 @@ package org.example.showcase;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.awaitility.Awaitility;
 import org.example.showcase.configuration.TestcontainersConfiguration;
 import org.example.showcase.entity.Dummy;
+import org.example.showcase.repository.BarRepository;
 import org.example.showcase.repository.DummyRepository;
 import org.example.showcase.service.DummyService;
 import org.instancio.Instancio;
 import org.instancio.junit.InstancioExtension;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import static org.awaitility.Awaitility.waitAtMost;
 import static org.instancio.Select.all;
 
 @ExtendWith(InstancioExtension.class)
@@ -38,6 +41,13 @@ class DummyTest {
     private DummyRepository dummyRepository;
     @Autowired
     private EventPublicationRepository eventPublicationRepository;
+    @Autowired
+    private BarRepository barRepository;
+
+    @BeforeAll
+    static void beforeAll() {
+        Awaitility.setDefaultPollInterval(5, TimeUnit.SECONDS);
+    }
 
     @Test
     void dummy() throws JsonProcessingException {
@@ -45,20 +55,19 @@ class DummyTest {
         stubFor(post("/foo").withRequestBody(equalToJson(objectMapper.writeValueAsString(dummy))).willReturn(ok()));
         dummyService.saveDummy(dummy);
         checkDummyIsSaved(dummy);
-        await()
+        waitAtMost(1, TimeUnit.MINUTES)
                 .atLeast(20, TimeUnit.SECONDS)
-                .atMost(1, TimeUnit.MINUTES)
-                .pollInterval(5, TimeUnit.SECONDS)
                 .untilAsserted(() -> checkFooEventWasSent(dummy));
-        await()
-                .atMost(1, TimeUnit.MINUTES)
-                .pollInterval(5, TimeUnit.SECONDS)
+        waitAtMost(1, TimeUnit.MINUTES)
                 .untilAsserted(this::checkAllEventsAreCompleted);
+        waitAtMost(1, TimeUnit.MINUTES)
+                .untilAsserted(() -> checkBarIsSaved(dummy));
     }
 
     private void checkDummyIsSaved(Dummy dummy) {
         var saved = dummyRepository.findAll().getFirst();
-        assertThat(saved).hasNoNullFieldsOrProperties()
+        assertThat(saved)
+                .hasNoNullFieldsOrProperties()
                 .usingRecursiveComparison()
                 .ignoringFields("timestamp")
                 .isEqualTo(dummy);
@@ -70,6 +79,15 @@ class DummyTest {
 
     private void checkAllEventsAreCompleted() {
         assertThat(eventPublicationRepository.findIncompletePublications()).isEmpty();
+    }
+
+    private void checkBarIsSaved(Dummy dummy) {
+        var saved = barRepository.findAll().getFirst();
+        assertThat(saved)
+                .hasNoNullFieldsOrProperties()
+                .usingRecursiveComparison()
+                .ignoringFields("timestamp")
+                .isEqualTo(dummy);
     }
 }
 

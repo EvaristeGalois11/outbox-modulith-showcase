@@ -14,6 +14,15 @@
         </createTable>
     </changeSet>
     <changeSet id="1743452031382-2" author="claudio">
+        <createTable tableName="bar">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="name" type="text"/>
+            <column name="timestamp" type="timestamp"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1743452031382-3" author="claudio">
         <createTable tableName="event_publication">
             <column name="id" type="uuid">
                 <constraints primaryKey="true"/>

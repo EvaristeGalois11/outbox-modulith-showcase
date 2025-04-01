@@ -20,6 +20,6 @@ public class FooScheduler {
     @Scheduled(fixedDelay = 2000)
     public void schedule() {
         log.info("Resubmitting incomplete events");
-        incompleteEventPublications.resubmitIncompletePublicationsOlderThan(Duration.ofSeconds(1));
+        incompleteEventPublications.resubmitIncompletePublicationsOlderThan(Duration.ofSeconds(5));
     }
 }
