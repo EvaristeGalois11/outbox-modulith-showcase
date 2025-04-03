@@ -22,7 +22,7 @@ public class BarListener {
         this.barRepository = barRepository;
     }
 
-    @RabbitListener(bindings = @QueueBinding(exchange = @Exchange(name = "BAR"), value = @Queue(name = "bar"), key = "bar"))
+    @RabbitListener(id = "bar", bindings = @QueueBinding(exchange = @Exchange(name = "BAR"), value = @Queue(name = "bar"), key = "bar"))
     public void onBarEvent(@Payload BarEvent event) {
         log.info("Received bar event: {}", event);
         Bar bar = new Bar();

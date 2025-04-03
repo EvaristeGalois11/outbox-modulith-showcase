@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.awaitility.Awaitility;
 import org.example.showcase.configuration.PostgresConfiguration;
-import org.example.showcase.configuration.RabbitConfiguration;
+import org.example.showcase.configuration.RabbitMockConfiguration;
 import org.example.showcase.entity.Dummy;
+import org.example.showcase.event.BarEvent;
+import org.example.showcase.listener.BarListener;
 import org.example.showcase.repository.BarRepository;
 import org.example.showcase.repository.DummyRepository;
 import org.example.showcase.service.DummyService;
@@ -14,6 +16,8 @@ import org.instancio.junit.InstancioExtension;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
+import org.springframework.amqp.rabbit.test.RabbitListenerTestHarness;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -29,13 +33,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.waitAtMost;
 import static org.instancio.Select.all;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 
 @DirtiesContext
 @ExtendWith(InstancioExtension.class)
 @SpringBootTest
-@Import({PostgresConfiguration.class, RabbitConfiguration.class})
+@Import({PostgresConfiguration.class, RabbitMockConfiguration.class})
 @EnableWireMock(@ConfigureWireMock(baseUrlProperties = "showcase.foo.url"))
-class DummyTest {
+class DummyRabbitMockedTest {
     @Autowired
     private DummyService dummyService;
     @Autowired
@@ -47,13 +53,21 @@ class DummyTest {
     @Autowired
     private BarRepository barRepository;
 
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
+    private RabbitListenerTestHarness harness;
+
     @BeforeAll
     static void beforeAll() {
         Awaitility.setDefaultPollInterval(5, TimeUnit.SECONDS);
     }
 
     @Test
-    void dummy() throws JsonProcessingException {
+    void dummy() throws JsonProcessingException, InterruptedException {
+        BarListener listener = harness.getSpy("bar");
+        var answer = harness.getLatchAnswerFor("bar", 1);
+        doAnswer(answer).when(listener).onBarEvent(any(BarEvent.class));
+
         var dummy = Instancio.of(Dummy.class).setBlank(all(Instant.class)).create();
         stubFor(post("/foo").withRequestBody(equalToJson(objectMapper.writeValueAsString(dummy))).willReturn(ok()));
         dummyService.saveDummy(dummy);
@@ -64,6 +78,9 @@ class DummyTest {
                 .untilAsserted(this::checkAllEventsAreCompleted);
         waitAtMost(1, TimeUnit.MINUTES)
                 .untilAsserted(() -> checkBarIsSaved(dummy));
+
+        answer.await(60);
+        Mockito.verify(listener).onBarEvent(any(BarEvent.class));
     }
 
     private void checkDummyIsSaved(Dummy dummy) {
@@ -92,4 +109,3 @@ class DummyTest {
                 .isEqualTo(dummy);
     }
 }
-
